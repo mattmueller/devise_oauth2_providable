@@ -1,5 +1,6 @@
 class Oauth2::AuthorizationsController < ApplicationController
   before_filter :authenticate_user!
+  before_filter :check_existing_authorization, :only => [:new]
 
   rescue_from Rack::OAuth2::Server::Authorize::BadRequest do |e|
     @error = e
@@ -51,4 +52,13 @@ class Oauth2::AuthorizationsController < ApplicationController
       end
     end
   end
+
+  def check_existing_authorization
+    @api_client = Client.find_by_identifier(params[:client_id])
+    @refresh_token = RefreshToken.where("expires_at > ?", Time.now).exists?(:client_id => @client, :user_id => current_user)
+    if current_user && @refresh_token
+      redirect_to @api_client.website
+    end
+  end
+
 end
